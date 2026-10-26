@@ -103,11 +103,58 @@ plot1
 
 ```{r}
 plot2 <- ggplot(eda_data, aes(x = ShotType, fill = IsAssisted)) +
-  geom_bar(position = "stack") +
-  scale_fill_manual(values = c("Yes" = "blue", "No" = "red")) +
+  geom_bar(position = "dodge") +
+  scale_fill_manual(values = c("Yes" = "darkgreen", "No" = "red")) +
   theme_minimal() +
   labs(title = "Assisted vs. Unassisted Shots by Shot Type for
-       the 2020-2021 NBA Season", x = "Shot Type", y = "Count")
+       the 2020-2021 NBA Season", x = "Shot Type", y = "Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 plot2
+```
+
+```{r}
+plot3 <- ggplot(eda_data, aes(x = ScoreDiff, fill = ShotOutcome)) +
+  geom_histogram(binwidth = 2, alpha = 0.6, position = "identity") +
+  scale_fill_manual(values = c("make" = "darkgreen", 
+                               "miss" = "red")) +
+  theme_minimal() +
+  labs(title = "Score Differences at Time of Shot for
+       2020-2021 NBA Season", x = "Score Difference (Home - Away)",
+       y = "Frequency", fill = "Outcome")
+plot3
+```
+
+```{r}
+plot4 <- ggplot(eda_data, aes(x = ShotDist, fill = IsAssisted)) +
+  geom_density(alpha = 0.7) +
+  facet_wrap(~ ShotType, scales = "free_y") +
+  scale_fill_manual(values = c("Yes" = "darkgreen", "No" = "red")) +
+  theme_minimal() +
+  labs(title = "Shot Distance Density Across Shot Types and 
+  Assistance for 2020-2021 NBA Season", x = "Shot Distance (ft)", 
+       y = "Density", fill = "Assisted?") 
+plot4
+```
+
+```{r}
+plot5 <- ggplot(eda_data, aes(x = QuarterLabel, y = TotalScore,
+                              fill = QuarterLabel)) +
+  geom_boxplot(show.legend = F) +
+  scale_fill_brewer(palette = "Set3") +
+  theme_minimal() +
+  labs(title = "Accumulated Points per Quarter", x = "Quarter",
+       y = "Combined Score")
+plot5
+```
+
+```{r}
+plot6 <- ggplot(eda_data, aes(x = ScoreDiff, y = ShotDist)) +
+  geom_bin2d(bins = 35) +
+  scale_fill_viridis_c(option = "magma") +
+  theme_minimal() +
+  labs(title = "2D Density Heatmap of Score Differential vs.
+       Shot Distance", x = "Score Differential (Home - Away)",
+       y = "Shot Distance (ft)")
+plot6
 ```
 
