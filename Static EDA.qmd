@@ -1,0 +1,58 @@
+---
+title: "Static Data Exploration"
+format: html
+editor: visual
+---
+
+```{r}
+#| include: FALSE
+library(tidyverse)
+```
+
+# Introduction
+
+For this project, I have chosen to look at the NBA play-by-play data for the 2020-2021 seaason. Basketball was the first sport I really got into when I was growing up, and the analytics behind the sport is one of the reasons I wanted to pursue a Statistics degree when I started college. 
+
+# Investigating the Data
+
+```{r}
+nba_data <- read_csv("NBA_PBP_2020-21.csv")
+nba_data
+```
+
+Going through the data, we can see that there are a lot of missing values which makes sense, as some of the variables, such as ShotType, Blocker, Assister, etc... may not happen during that specific play. There might not be a shot attempted during that possession, for example. Therefore before looking at any numerical or graphical summaries, I'm going to remove those NA values for the variables I am interested in looking at.
+
+```{r}
+eda_data <- nba_data %>% 
+  filter(!is.na(ShotType), !is.na(ShotOutcome)) %>%
+  mutate(
+    ScoreDiff = HomeScore - AwayScore,
+    TotalScore = HomeScore + AwayScore,
+    IsAssisted = ifelse(!is.na(Assister), "Yes", "No"),
+    QuarterLabel = case_when(
+      Quarter == 1 ~ "Q1",
+      Quarter == 2 ~ "Q2",
+      Quarter == 3 ~ "Q3",
+      Quarter == 4 ~ "Q4",
+      Quarter == 5 ~ "OT1",
+      Quarter == 6 ~ "OT2",
+      TRUE ~ paste0("Q", Quarter)
+    ),
+    QuarterLabel = factor(QuarterLabel, levels = c("Q1", "Q2", "Q3", 
+                                                    "Q4", "OT1", 
+                                                    "OT2"))
+  )
+eda_data
+```
+
+## Contingency Tables
+
+First I'll look at some one-way contingency tables
+```{r}
+table(eda_data$ShotOutcome)
+table(eda_data$ShotType)
+table(eda_data$IsAssisted)
+table(eda_data$QuarterLabel)
+```
+
+Now for the 
