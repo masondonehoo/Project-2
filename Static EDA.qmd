@@ -91,6 +91,7 @@ eda_data %>%
 
 ## Graphical Summaries
 ```{r}
+#Creating barchart of counts of ShotType
 plot1 <- ggplot(eda_data, aes(x = ShotType)) +
   geom_bar(fill = "navyblue") +
   theme_minimal() +
@@ -102,6 +103,7 @@ plot1
 ```
 
 ```{r}
+#Creating barchart of counts of ShotType by whether or not they were assisted
 plot2 <- ggplot(eda_data, aes(x = ShotType, fill = IsAssisted)) +
   geom_bar(position = "dodge") +
   scale_fill_manual(values = c("Yes" = "darkgreen", "No" = "red")) +
@@ -113,6 +115,7 @@ plot2
 ```
 
 ```{r}
+#Creating histogram of the difference in score by whether the shot was made or missed
 plot3 <- ggplot(eda_data, aes(x = ScoreDiff, fill = ShotOutcome)) +
   geom_histogram(binwidth = 2, alpha = 0.6, position = "identity") +
   scale_fill_manual(values = c("make" = "darkgreen", 
@@ -125,6 +128,7 @@ plot3
 ```
 
 ```{r}
+#Creating density plot of shot distance by whether or not the player was assisted
 plot4 <- ggplot(eda_data, aes(x = ShotDist, fill = IsAssisted)) +
   geom_density(alpha = 0.7) +
   facet_wrap(~ ShotType, scales = "free_y") +
@@ -137,6 +141,7 @@ plot4
 ```
 
 ```{r}
+#Creating boxplot of the total score for each quarter
 plot5 <- ggplot(eda_data, aes(x = QuarterLabel, y = TotalScore,
                               fill = QuarterLabel)) +
   geom_boxplot(show.legend = F) +
@@ -148,6 +153,7 @@ plot5
 ```
 
 ```{r}
+#Creating density heatmap of score differential against shot distance
 plot6 <- ggplot(eda_data, aes(x = ScoreDiff, y = ShotDist)) +
   geom_bin2d(bins = 35) +
   scale_fill_viridis_c(option = "magma") +
@@ -159,6 +165,7 @@ plot6
 ```
 
 ```{r}
+#Saving cleaned data in a .rds file to be used in shiny app
 write_rds(eda_data, "nba_cleaned.rds")
 ```
 
