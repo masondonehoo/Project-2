@@ -55,4 +55,59 @@ table(eda_data$IsAssisted)
 table(eda_data$QuarterLabel)
 ```
 
-Now for the 
+Now for the two-way contingency tables
+```{r}
+table(eda_data$ShotType, eda_data$ShotOutcome)
+table(eda_data$ShotType, eda_data$QuarterLabel)
+table(eda_data$ShotType, eda_data$IsAssisted)
+```
+
+## Numerical Summaries
+```{r}
+eda_data %>%
+  group_by(ShotType, IsAssisted) %>%
+  summarize(
+    MeanDist = mean(ShotDist, na.rm = T),
+    SDDist = sd(ShotDist, na.rm = T),
+    MedianDist = median(ShotDist, na.rm = T),
+    MeanDiff = mean(ScoreDiff, na.rm = T),
+    count = n(),
+    .groups = "drop"
+  )
+```
+
+```{r}
+eda_data %>% 
+  group_by(QuarterLabel, ShotOutcome) %>%
+  summarize(
+    MeanHome = mean(HomeScore, na.rm = T),
+    SDHome = sd(HomeScore, na.rm = T),
+    MeanAway = mean(AwayScore, na.rm = T),
+    SDAway = sd(AwayScore, na.rm = T),
+    count = n(),
+    .groups = "drop"
+  )
+```
+
+## Graphical Summaries
+```{r}
+plot1 <- ggplot(eda_data, aes(x = ShotType)) +
+  geom_bar(fill = "navyblue") +
+  theme_minimal() +
+  labs(title = "Frequency of Shot Types in the 2020-2021 
+       NBA Season",
+       x = "Shot Type", y = "Count") + 
+  coord_flip()
+plot1
+```
+
+```{r}
+plot2 <- ggplot(eda_data, aes(x = ShotType, fill = IsAssisted)) +
+  geom_bar(position = "stack") +
+  scale_fill_manual(values = c("Yes" = "blue", "No" = "red")) +
+  theme_minimal() +
+  labs(title = "Assisted vs. Unassisted Shots by Shot Type for
+       the 2020-2021 NBA Season", x = "Shot Type", y = "Count")
+plot2
+```
+
