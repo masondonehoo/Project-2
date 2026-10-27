@@ -20,8 +20,8 @@ ui <- fluidPage(
       checkboxGroupInput(
         inputId = "cat_shot_type",
         label = "Shot Types:",
-        choices = levels(nba_clean$ShotType),
-        selected = levels(nba_clean$ShotType)
+        choices = sort(unique(nba_clean$ShotType)),
+        selected = sort(unique(nba_clean$ShotType))
       ),
       actionButton("toggle_shot_types", "Select/Deselect All Shot Types",
                    class = "btn-sm btn-secondary"),
@@ -31,8 +31,8 @@ ui <- fluidPage(
       checkboxGroupInput(
         inputId = "cat_outcome",
         label = "Shot Outcome:",
-        choices = levels(nba_clean$ShotOutcome),
-        selected = levels(nba_clean$ShotOutcome)
+        choices = sort(unique(nba_clean$ShotOutcome)),
+        selected = sort(unique(nba_clean$ShotOutcome))
       ),
       hr(),
       
@@ -40,8 +40,8 @@ ui <- fluidPage(
       checkboxGroupInput(
         inputId = "cat_quarter",
         label = "Quarter",
-        choices = levels(nba_clean$QuarterLabel),
-        selected = levels(nba_clean$QuarterLabel)[1:4]
+        choices = sort(unique(nba_clean$QuarterLabel)),
+        selected = sort(unique(nba_clean$QuarterLabel))
       ),
       hr(),
       
@@ -49,8 +49,8 @@ ui <- fluidPage(
       checkboxGroupInput(
         inputId = "cat_assisted",
         label = "Assisted?:",
-        choices = levels(nba_clean$IsAssisted),
-        selected = levels(nba_clean$IsAssisted)
+        choices = sort(unique(nba_clean$IsAssisted)),
+        selected = sort(unique(nba_clean$IsAssisted))
       ),
       hr(),
       
@@ -104,7 +104,7 @@ ui <- fluidPage(
         
         #Creating panel to download the dataset being used
         tabPanel(
-          "Data Downlaod",
+          "Data Download",
           br(),
           
           downloadButton("download_csv", "Download Filtered Dataset",
@@ -123,7 +123,7 @@ ui <- fluidPage(
             br(),
             selectInput("table_mode", "Summary Display Mode:",
                         choices = c("Categorical Contingency Table",
-                                    "Grouper Numeric Statistics")),
+                                    "Grouped Numeric Statistics")),
             uiOutput("table_controls.ui"),
             hr(),
             
@@ -171,3 +171,217 @@ ui <- fluidPage(
     )
   )
 )
+
+
+server <- function(input, output, session){
+  
+  output$num_dist_ui <- renderUI({
+    min_v <- min(nba_clean$ShotDist, na.rm = T)
+    max_v <- max(nba_clean$ShotDist, na.rm = T)
+    sliderInput("num_dist", "Shot Distance (ft):", min = min_v, max = max_v,
+                value = c(min_v, max_v))
+  })
+  
+  output$num_sec_ui <- renderUI({
+    min_v <- min(nba_clean$SecLeft, na.rm = T)
+    max_v <- max(nba_clean$SecLeft, na.rm = T)
+    sliderInput("num_sec", "Seconds Left In Quarter:", min = min_v, max = max_v,
+                value = c(min_v, max_v))
+  })
+  
+  output$num_scorediff_ui <- renderUI({
+    min_v <- min(nba_clean$ScoreDiff, na.rm = T)
+    max_v <- max(nba_clean$ScoreDiff, na.rm = T)
+    sliderInput("num_scorediff", "Score Difference (Home - Away)", min = min_v,
+                max = max_v, value = c(min_v, max_v))
+  })
+  
+  output$num_totalscore_ui <- renderUI({
+    min_v <- min(nba_clean$TotalScore, na.rm = T)
+    max_v <- max(nba_clean$TotalScore, na.rm = T)
+    sliderInput("num_totalscore", "Total Score in Game", min = min_v, max = max_v,
+                value = c(min_v, max_v))
+  })
+  
+  
+  observeEvent(input$toggle_shot_types, {
+    current <- input$cat_shot_type
+    all_types <- levels(nba_clean$ShotType)
+    if(length(current) < length(all_types)){
+      updateCheckboxGroupInput(session, "cat_shot_type", selected = all_types)
+    } else{
+      updateCheckboxGroupInput(session, "cat_shot_type", selected = character(0))
+    }
+  })
+  
+  
+  filtered_data <- eventReactive(input$update_data, ignoreNULL = F, {
+    
+    req(input$cat_shot_type, input$cat_outcome, input$cat_quarter, input$cat_assisted)
+    
+    df <- nba_clean %>%
+      filter(
+        ShotType %in% input$cat_shot_type,
+        ShotOutcome %in% input$cat_outcome,
+        QuarterLabel %in% input$cat_quarter,
+        IsAssisted %in% input$cat_assisted
+      )
+    
+    if(!is.null(input$num_dist)){
+      df <- df %>% filter(ShotDist >= input$num_dist[1] & ShotDist <= input$num_dist[2])
+    }
+    
+    if(!is.null(input$num_sec)){
+      df <- df %>% filter(SecLeft >= input$num_sec[1] & SecLeft <= input$num_sec[2])
+    }
+    
+    if(!is.null(input$num_scorediff)){
+      df <- df %>% filter(ScoreDiff >= input$num_scorediff[1] & ScoreDiff <= input$num_scorediff[2])
+    }
+    
+    if(!is.null(input$num_totalscore)){
+      df <- df %>% filter(TotalScore >= input$num_totalscore[1] & TotalScore <= input$num_totalscore[2])
+    }
+    
+    df
+  })
+  
+  output$subset_table <- renderDataTable({
+    datatable(filtered_data(), options = list(pageLength = 10, scrollX = T))
+  })
+  
+  output$download_csv <- downloadHandler(
+    filename = function() {paste0("nba_filtered", Sys.Date(), ".csv")},
+    content = function(file) {write.csv(filtered_data(), file, row.names = F)}
+  )
+  
+  output$table_controls_ui <- renderUI({
+    if(input$table_mode == "Categorical Contingency Table"){
+      tagList(
+        selectInput("cat_v1", "Row Categorical Variable:", 
+                    choices = c("ShotType", "ShotOutcome", "QuarterLabel", "IsAssisted")),
+        selectInput("cat_v2", "Column Categorical Variable:", 
+                    choices = c("None", "ShotType", "ShotOutcome", "QuarterLabel", "IsAssisted"))
+      )
+      } else{
+        tagList(
+          selectInput("num_v", "Numeric Variable to Summarize:", 
+                      choices = c("ShotDist", "SecLeft", "ScoreDiff", "TotalScore")),
+          selectInput("group_v", "Group to Summarize Across:",
+                      choices = c("ShotType", "ShotOutcome", "QuarterLabel", "IsAssisted"))
+        )
+      }
+  })
+  
+  output$contingency_output <- renderPrint({
+    data <- filtered_data()
+    req(data, input$table_mode == "Categorical Contingency Table", input = input$cat_v1)
+    
+    if(!is.null(input$cat_v2) || input$cat_v2 == "None"){
+      table(data[[input$cat_v1]])
+    } else{
+      table(Row = data[[input$cat_v1]], Column = data[[input$cat_v2]])
+    }
+  })
+  
+  output$summary_stats_table <- renderDataTable({
+    data <- filtered_data()
+    req(data, input$table_mode == "Grouped Numeric Summary Statistics",
+        input$num_v, input$group_v)
+    
+    res <- data %>%
+      group_by(!!sym(input$group_v)) %>%
+      summarize(
+        Mean = round(mean(!!sym(input$num_v), na.rm = T), 2),
+        SD = round(sd(!!sym(input$num_v), na.rm = T), 2),
+        Median = round(median(!!sym(input$num_v), na.rm = T), 2),
+        IQR = round(IQR(!!sym(input$nun_v), na.rm = T), 2),
+        Min = min(!!sym(input$num_v), na.rm = T),
+        Max = max(!!sym(input$num_v), na.rm = T),
+        Count = n(),
+        .groups = "drop"
+      )
+    datatable(res, options = list(pageLength = 10, dom = 't'))
+  })
+  
+  output$exploration_plot <- renderPlot({
+    validate(
+      need(nrow(data) > 0, "Filter produced no result, please adjust.")
+    )
+    
+    p <- ggplot(data)
+    
+    if(input$plot_type == "Bar Chart"){
+      if(input$fill_color_var != "None"){
+        p <- p + geom_bar(aes(x = !!sym(input$x_var), fill = !!sym(input$fill_color_var)),
+                          position = "dodge")
+      } else{
+        p <- p + geom_bar(aes(x = !!sym(input$x_var), fill = "navyblue"))
+      }
+      
+    } else if(input$plot_type == "Histogram"){
+      if(input$fill_color_var != "None"){
+        p <- p + geom_histogram(aes(x = !!sym(input$x_var), fill = !!sym(input$fill_color_var)),
+                                alpha = 0.6, position = "identity", bins = 30)
+      } else{
+        p <- p + geom_histogram(aes(x = !!sym(input$x_var)), fill = "navyblue",
+                                bins = 30)
+      }
+      
+    } else if(input$plot_type == "Boxplot"){
+      if(input$fill_color_var != "None"){
+        p <- p + geom_boxplot(aes(x = !!sym(input$x_var), y = !!sym(input$y_var),
+                                  fill = !!sym(input$fill_color_var)))
+      } else{
+        p <- p + geom_boxplot(aes(x = !!sym(input$x_var), y = !!sym(input$y_var)),
+                              fill = "navyblue")
+      }
+      
+    } else if(input$plot_type == "Density Plot"){
+      if(input$fill_color_var != "None"){
+        p <- p + geom_density(aes(x = !!sym(input$x_var), fill = !!sym(input$fill_color_var)),
+                              alpha = 0.5)
+      } else{
+        p <- p + geom_density(aes(x = !!sym(input$x_var)), fill = "navyblue",
+                              alpha = 0.5)
+      }
+      
+    } else if(input$plot_type == "Scatterplot"){
+      if(input$fill_color_var != "None"){
+        p <- p + geom_point(aes(x = !!sym(input$x_var), y = !!sym(input$y_var),
+                                color = !!sym(input$fill_color_var)), alpha = 0.5)
+      } else{
+        p <- p + geom_point(aes(x = !!sym(input$x_var), y = !!sym(input$y_var)),
+                            color = "navyblue", alpha = 0.5)
+      }
+      
+    } else if(input$plot_type == "2D Density Heatmap"){
+      p <- p + geom_bin2d(aes(x = !!sym(input$x_var), y = !!sym(input$y_var)),
+                          bins = 30) + scale_fill_viridis_c()
+    }
+    
+    if(input$facet_var != "None"){
+      p <- p + facet_wrap(vars(!!sym(input$facet_var)))
+    }
+    
+    if(input$coord_flip){
+      p <- p + coord_flip()
+    } else{
+      p <- p + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    }
+    
+    y_label <- if(input$plot_type %in% c("Bar Chart", "Histogram")){
+      "Count"
+    } else if(input$plot_type %in% "Density Plot"){
+      "Density"
+    } else{
+      input$y_var
+    }
+    
+    p <- p + theme_minimal() + labs(title = paste(input$plot_type, 
+                                                  "of 2020-2021 NBA Dataset"),
+                                    x = input$x_var, y = y_label)
+  })
+}
+
+shinyApp(ui = ui, server = server)
